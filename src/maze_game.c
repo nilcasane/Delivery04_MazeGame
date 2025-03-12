@@ -11,7 +11,7 @@
 *
 ********************************************************************************************/
 
-#include "raylib.h"
+#include <raylib.h>
 
 #include <stdlib.h>     // Required for: malloc(), free()
 
@@ -118,20 +118,29 @@ int main(void)
             // Implement maze 2D player movement logic (cursors || WASD)
             // Use imMaze pixel information to check collisions
             // Detect if current playerCell == endCell to finish game
+            Point prevPlayerpos = { player.x, player.y };
 
-            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) player.x += 2;
-            else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) player.x -= 2;
-            else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) player.y += 2;
-            else if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) player.y -= 2;
+            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) player.x += 4;
+            else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) player.x -= 4;
+            else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) player.y += 4;
+            else if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) player.y -= 4;
+
+            if (ColorIsEqual(GetImageColor(imMaze,
+                (int)((player.x - position.x) / MAZE_SCALE),
+                (int)((player.y - position.y) / MAZE_SCALE)), WHITE)) {
+                player.x = prevPlayerpos.x;
+                player.y = prevPlayerpos.y;
+            }
 
             // Update camera target position with new player position
             camera2d.target = (Vector2){ player.x + 2, player.y + 2 };
 
             // TODO: [1p] Camera 2D system following player movement around the map
             // Update Camera2D parameters as required to follow player and zoom control
-            camera.target = (Vector2){ player.x + 2.5f, player.y + 2.5f }; 
+
 
             // TODO: [2p] Maze items pickup logic
+            
         }
         else if (currentMode == 1) // Editor mode
         {
