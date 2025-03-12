@@ -140,7 +140,7 @@ int main(void)
 
 
             // TODO: [2p] Maze items pickup logic
-            
+
         }
         else if (currentMode == 1) // Editor mode
         {
@@ -269,6 +269,7 @@ int main(void)
                 DrawRectangleLines(mazePosition.x, mazePosition.y, MAZE_WIDTH*MAZE_SCALE, MAZE_HEIGHT*MAZE_SCALE, RED);
 
                 // TODO: Draw player using a rectangle, consider maze screen coordinates!
+                DrawRectangle(player.x, player.y, player.width, player.height, RED);
 
                 // TODO: Draw editor UI required elements
             }
@@ -299,6 +300,100 @@ Image GenImageMaze(int width, int height, int spacingRows, int spacingCols, floa
     Image imMaze = { 0 };
     
     // TODO: [1p] Implement maze image generation algorithm
+    Image imMaze = GenImageColor(width, height, BLACK);
+
+    // TODO: Generate procedural maze image, using grid-based algorithm
+    // NOTE: Color scheme used: WHITE = Wall, BLACK = Walkable
+    // TODO 1.2: Draw image border
+    for (int y = 0; y < imMaze.height; y++)
+    {
+        for (int x = 0; x < imMaze.width; x++)
+        {
+            if ((x == 0) || (x == (imMaze.width - 1)) ||
+                (y == 0) || (y == (imMaze.height - 1)))
+            {
+                ImageDrawPixel(&imMaze, x, y, WHITE);
+            }
+            else
+            {
+                if ((x % 4 == 0) && (y % 4 == 0))
+                {
+                    if (GetRandomValue(0, 100) <= 50) {
+                        // mazePoints[mazePointCounter] = (Point){ x, y };
+                        // mazePointCounter++;
+                    }
+                }
+            }
+        }
+    }
+
+    // STEP 2: Set some random point in image at specific row-column distances
+
+    // TODO 2.1: Define an array of point used for maze generation
+    // NOTE A: Static array allocation, memory allocated in STACK (MAX: 1MB)
+    // NOTE B: Dynamic array allocation, memory allocated in HEAP (MAX: Available RAM)
+   
+	//Point mazePoints[64] = { 0 }; //Static array 
+	Point* mazePoints = malloc(256 * sizeof(Point)); //Dynamic array
+    int mazePointCounter = 0;
+ 
+    // TODO 2.2: Store specific points, at specific row-column distances
+    for (int y = 0; y < imMaze.height; y++)
+    {
+        for (int x = 0; x < imMaze.width; x++)
+        {
+            if ((x == 0) || (x == (imMaze.width - 1)) ||
+                (y == 0) || (y == (imMaze.height - 1)))
+            {
+                ImageDrawPixel(&imMaze, x, y, WHITE);
+            }
+            else
+            {
+                if ((x % 4 == 0) && (y % 4 == 0))
+                {
+                    if (GetRandomValue(0, 100) <= 80) {
+                        mazePoints[mazePointCounter] = (Point){ x, y };
+                        mazePointCounter++;
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO 2.3: Draw our points in image
+    for (int i = 0; i < mazePointCounter; i++) {
+        ImageDrawPixel(&imMaze, mazePoints[i].x, mazePoints[i].y, WHITE);
+    }
+
+    // STEP 3: Draw lines from every point in a random direction
+
+    // TODO 3.1: Define an array of 4 directions for convenience
+    Point directions[4] = {
+        { 0, -1 }, // North
+        { 1, 0 },  // East
+        { 0, 1 },  // South
+        { -1, 0 }  // West
+    };
+
+    // TODO 3.2: Load a random sequence of points, to be used as indices, so,
+    // we can access maze-points randomly indexed, instead of following the order we stored them
+    int* pointOrder = LoadRandomSequence(mazePointCounter, 0, mazePointCounter - 1);
+
+    // TODO 3.3: Process every random maze point, drawing pixels in one random direction,
+    // until we collision with another wall (WHITE pixel)
+    for (int i = 0; i < mazePointCounter; i++)
+    {
+        Point currentPoint = mazePoints[pointOrder[i]];
+        Point currentDir = directions[GetRandomValue(0, 3)];
+        Point nextPoint = { currentPoint.x + currentDir.x, currentPoint.y + currentDir.y };
+
+        while (ColorIsEqual(GetImageColor(imMaze, nextPoint.x, nextPoint.y), BLACK))
+        {
+            ImageDrawPixel(&imMaze, nextPoint.x, nextPoint.y, WHITE);
+            nextPoint.x += currentDir.x;
+            nextPoint.y += currentDir.y;
+        }
+    }
     
     return imMaze;
 }
