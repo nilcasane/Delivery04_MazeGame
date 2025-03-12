@@ -118,6 +118,23 @@ int main(void)
             // Use imMaze pixel information to check collisions
             // Detect if current playerCell == endCell to finish game
 
+            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) player.x += 2;
+            else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) player.x -= 2;
+            else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) player.y += 2;
+            else if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) player.y -= 2;
+
+            // Update camera target position with new player position
+            camera2d.target = (Vector2){ player.x + 2, player.y + 2 };
+
+            // TODO: [1p] Camera 2D system following player movement around the map
+            // Update Camera2D parameters as required to follow player and zoom control
+
+            // TODO: [2p] Maze items pickup logic
+        }
+        else if (currentMode == 1) // Editor mode
+        {
+            // TODO: [2p] Maze editor mode, edit image pixels with mouse.
+            
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
             {
                 Vector2 mousePos = GetMousePosition();
@@ -152,27 +169,7 @@ int main(void)
                     texMaze = LoadTextureFromImage(imMaze);
                 }
             }
-        }
-        else  // Game mode
-        {
-            // Player movement
-            if (IsKeyDown(KEY_RIGHT)) player.x += 2;
-            else if (IsKeyDown(KEY_LEFT)) player.x -= 2;
-            else if (IsKeyDown(KEY_DOWN)) player.y += 2;
-            else if (IsKeyDown(KEY_UP)) player.y -= 2;
 
-            // Update camera target position with new player position
-            camera2d.target = (Vector2){ player.x + 2, player.y + 2 };
-        }
-
-            // TODO: [1p] Camera 2D system following player movement around the map
-            // Update Camera2D parameters as required to follow player and zoom control
-
-            // TODO: [2p] Maze items pickup logic
-        }
-        else if (currentMode == 1) // Editor mode
-        {
-            // TODO: [2p] Maze editor mode, edit image pixels with mouse.
             // Implement logic to selecte image cell from mouse position -> TIP: GetMousePosition()
             // NOTE: Mouse position is returned in screen coordinates and it has to 
             // transformed into image coordinates
@@ -203,8 +200,9 @@ int main(void)
                 BeginMode2D(camera2d);
 
                     // TODO: Draw maze walls and floor using current texture biome 
-                     // For each pixel in the image, draw a rectangle piece of the texture 
-                // at specific coordinates with specific size
+                    // For each pixel in the image, draw a rectangle piece of the texture 
+                    // at specific coordinates with specific size
+
                 for (int y = 0; y < imMaze.height; y++)
                 {
                     for (int x = 0; x < imMaze.width; x++)
