@@ -48,7 +48,8 @@ int main(void)
 
     // Random seed defines the random numbers generation,
     // always the same if using the same seed
-    SetRandomSeed(67218);
+    int seed = 0;
+    SetRandomSeed(92683);
 
     // Generate maze image using the grid-based generator
     // TODO: [1p] Implement GenImageMaze() function with required parameters
@@ -128,6 +129,7 @@ int main(void)
 
             // TODO: [1p] Camera 2D system following player movement around the map
             // Update Camera2D parameters as required to follow player and zoom control
+            camera.target = (Vector2){ player.x + 2.5f, player.y + 2.5f }; 
 
             // TODO: [2p] Maze items pickup logic
         }
