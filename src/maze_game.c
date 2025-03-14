@@ -42,6 +42,10 @@ int main(void)
     const int screenHeight = 720;
 
     InitWindow(screenWidth, screenHeight, "Delivery04 - maze game");
+    InitAudioDevice();
+
+    Sound sfx = LoadSound("resources/PointSFX.wav");
+    Sound song = LoadSound("resources/BackgroundMusic.wav");
 
     // Current application mode
     int currentMode = 1;    // 0-Game, 1-Editor
@@ -108,6 +112,9 @@ int main(void)
 
     SetTargetFPS(60);       // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
+    // 
+    //Reproductor Musica
+    PlaySound(song);
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
@@ -115,18 +122,19 @@ int main(void)
         // Update
         //----------------------------------------------------------------------------------
         // Select current mode as desired
+
+        
+
         if (IsKeyPressed(KEY_SPACE)) currentMode = !currentMode; // Toggle mode: 0-Game, 1-Editor
-        if (IsKeyPressed(KEY_R)) seed = GetRandomValue(50000, 100000);
 
         if (currentMode == 0) // Game mode
         {
             // TODO: [2p] Player 2D movement from predefined Start-point to End-point
             // Implement maze 2D player movement logic (cursors || WASD)
             
-            //Point prevPlayerpos = { player.x, player.y };
+            float velocity = 1 * MAZE_SCALE;
+            Vector2 direction = { 0 };
 
-            float velocity = 0.5f * MAZE_SCALE;
-            Vector2 direction = { 0};
             if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) direction = (Vector2) { velocity, 0 };
             else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) direction = (Vector2){ -velocity, 0 };
             else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) direction = (Vector2){ 0, velocity };
@@ -134,14 +142,12 @@ int main(void)
             
             // Use imMaze pixel information to check collisions
 
-            if (!ColorIsEqual(GetImageColor(imMaze, (player.x + direction.x), (player.x + direction.y)), BLACK))
+            if (!ColorIsEqual(GetImageColor(imMaze,
+                (int)((player.x + direction.x - position.x) / MAZE_SCALE),
+                (int)((player.y + direction.y - position.y) / MAZE_SCALE)), WHITE))
             {
                 player.x += direction.x;
                 player.y += direction.y;
-            }
-
-            if (ColorIsEqual(GetImageColor(imMaze, player.x, player.y), RED)) {
-                playerScore++;
             }
 
             // Detect if current playerCell == endCell to finish game
@@ -152,27 +158,45 @@ int main(void)
                 CloseWindow();
             }
 
-            // Update camera target position with new player position
-            camera.target = (Vector2){ player.x + 2, player.y + 2 };
-
             // TODO: [1p] Camera 2D system following player movement around the map
             // Update Camera2D parameters as required to follow player and zoom control
-
+            // Update camera target position with new player position
+            camera.target = (Vector2){ player.x + 2, player.y + 2 };
+            camera.zoom += ((float)GetMouseWheelMove()*0.05f);
 
             // TODO: [2p] Maze items pickup logic
-
+            if (ColorIsEqual(GetImageColor(imMaze, player.x, player.y), RED)) {
+                playerScore += 1;
+                PlaySound(sfx);
+                /*for (int i = 0; i < MAX_MAZE_ITEMS; i++) {
+                    Point Item = mazeItems[i];
+                    if (Item.x == player.x && Item.y == player.y) {
+                        mazeItemPicked[i] = false;
+                    }
+                }*/
+            }
         }
         else if (currentMode == 1) // Editor mode
         {
+            if (IsKeyPressed(KEY_R))
+            {
+                seed += GetRandomValue(1, 99);
+                UnloadImage(imMaze);
+                UnloadTexture(texMaze);
+                imMaze = GenImageMaze(MAZE_WIDTH, MAZE_HEIGHT, 4, 4, 0.5f);
+                texMaze = LoadTextureFromImage(imMaze);
+            }
+
             // TODO: [2p] Maze editor mode, edit image pixels with mouse.
             
-            // Implement logic to selecte image cell from mouse position -> TIP: GetMousePosition()
+            // Implement logic to select image cell from mouse position -> TIP: GetMousePosition()
             // NOTE: Mouse position is returned in screen coordinates and it has to 
             // transformed into image coordinates
             // Once the cell is selected, if mouse button pressed add/remove image pixels
 
             // WARNING: Remember that when imMaze changes, texMaze must be also updated!
 
+            // Set Walkable Position
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
             {
                 Vector2 mousePos = GetMousePosition();
@@ -184,14 +208,17 @@ int main(void)
                         (int)((mousePos.y - position.y) / MAZE_SCALE),
                     };
 
-                    ImageDrawPixel(&imMaze, mapCoord.x, mapCoord.y, WHITE);
+                    ImageDrawPixel(&imMaze, mapCoord.x, mapCoord.y, BLACK);
 
                     UnloadTexture(texMaze);
                     texMaze = LoadTextureFromImage(imMaze);
                 }
             }
+
+
             if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-                if (IsKeyPressed(KEY_LEFT_CONTROL)) {
+                // Set End-Point Position
+                if (IsKeyDown(KEY_LEFT_CONTROL)) {
                     Vector2 mousePos = GetMousePosition();
 
                     if ((mousePos.x >= position.x) && (mousePos.y >= position.y))
@@ -207,6 +234,7 @@ int main(void)
                         texMaze = LoadTextureFromImage(imMaze);
                     }
                 }
+                // Set Wall Position
                 else
                 {
                     Vector2 mousePos = GetMousePosition();
@@ -242,7 +270,7 @@ int main(void)
                     };
 
                     for (int i = 0; i < MAX_MAZE_ITEMS; i++) {
-                        if (mazeItems[i].x == 0 && mazeItems[i].y == 0) {
+                        if (mazeItems[i].x == 0 && mazeItems[i].y) {
                             mazeItems[i] = mapCoord;
                             mazeItemPicked[i] = false;
                             ImageDrawPixel(&imMaze, mapCoord.x, mapCoord.y, RED);
@@ -347,10 +375,12 @@ int main(void)
                     (Rectangle) { player.x, player.y, MAZE_SCALE, MAZE_SCALE },
                     (Vector2) { 0 }, 0.0f, WHITE);
                 
-                    // TODO: Draw maze items 2d (using sprite texture?)
-                    //DrawTextureEx(texMaze, mazePosition, 0.0f, MAZE_SCALE, YELLOW);
+                // TODO: Draw maze items 2d (using sprite texture?)
                         
-                    // Items
+                for (int i = 0; i < MAX_MAZE_ITEMS; i++) {
+                    Point Item = mazeItems[i];
+                    ImageDrawPixel(&imMaze, Item.x, Item.y, RED);
+                }
                     
                 EndMode2D();
 
@@ -358,9 +388,9 @@ int main(void)
                 // NOTE: Game UI does not receive the camera2d transformations,
                 // it is drawn in screen space coordinates directly
 
-                DrawText("[R] GENERATE NEW RANDOM SEQUENCE", 10, 36, 10, LIGHTGRAY);
-                DrawText(TextFormat("SEED: %i", seed), 10, 56, 10, YELLOW);
+                DrawText(TextFormat("SCORE: %i", playerScore), 10, 76, 10, RED);
                 DrawText("[SPACE] TOGGLE MODE: EDITOR/GAME", 10, GetScreenHeight() - 20, 10, WHITE);
+                
                 DrawFPS(10, 10);
 
             }
@@ -376,7 +406,9 @@ int main(void)
                 DrawRectangle(player.x, player.y, player.width * MAZE_SCALE, player.height * MAZE_SCALE, RED);
 
                 // TODO: Draw editor UI required elements
-                //poner score actual
+                DrawText("[R] GENERATE NEW RANDOM SEQUENCE", 10, 36, 10, LIGHTGRAY);
+                DrawText(TextFormat("SEED: %i", seed), 10, 56, 10, YELLOW);
+                DrawText("[SPACE] TOGGLE MODE: EDITOR/GAME", 10, GetScreenHeight() - 20, 10, WHITE);
             }
 
             DrawFPS(10, 10);
@@ -389,6 +421,8 @@ int main(void)
     //--------------------------------------------------------------------------------------
     UnloadTexture(texMaze);     // Unload maze texture from VRAM (GPU)
     UnloadImage(imMaze);        // Unload maze image from RAM (CPU)
+    UnloadSound(sfx);
+    UnloadSound(song);
 
     // TODO: Unload all loaded resources
     
@@ -418,16 +452,6 @@ Image GenImageMaze(int width, int height, int spacingRows, int spacingCols, floa
                 (y == 0) || (y == (imMaze.height - 1)))
             {
                 ImageDrawPixel(&imMaze, x, y, WHITE);
-            }
-            else
-            {
-                if ((x % 4 == 0) && (y % 4 == 0))
-                {
-                    if (GetRandomValue(0, 100) <= 50) {
-                        // mazePoints[mazePointCounter] = (Point){ x, y };
-                        // mazePointCounter++;
-                    }
-                }
             }
         }
     }
