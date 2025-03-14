@@ -60,7 +60,7 @@ int main(void)
     Texture texMaze = LoadTextureFromImage(imMaze);
 
     // Player start-position and end-position initialization
-    Point startCell = { 1, 1 };
+    Point startCell = { 2, 2 };
     Point endCell = { imMaze.width - 2, imMaze.height - 2 };
 
     // Maze drawing position (editor mode)
@@ -70,7 +70,8 @@ int main(void)
     };
 
     // Define player position and size
-    Rectangle player = { mazePosition.x + 1*MAZE_SCALE + 2, mazePosition.y + 1*MAZE_SCALE + 2, 4, 4 };
+    Rectangle player = { mazePosition.x + startCell.x * MAZE_SCALE, mazePosition.y + startCell.y * MAZE_SCALE, 1, 1 };
+
     Vector2 position = {
         screenWidth / 2 - imMaze.width * MAZE_SCALE / 2,
         screenHeight / 2 - imMaze.height * MAZE_SCALE / 2
@@ -94,12 +95,15 @@ int main(void)
     // Define textures to be used as our "biomes"
     Texture texBiomes[4] = { 0 };
     texBiomes[0] = LoadTexture("resources/maze_biome01.png");
+    texBiomes[1] = LoadTexture("resources/maze_biome02.png");
+    //texBiomes[2] = LoadTexture("resources/maze_biome03.png");
 
     // TODO: Load additional textures for different biomes
     int currentBiome = 0;
 
     // TODO: Define all variables required for game UI elements (sprites, fonts...)
-
+    Texture texPlayer = LoadTexture("resources/player.png");
+    Rectangle sourceRec = { 6, 2, 26, 31 };
     int playerScore = 0;
 
     SetTargetFPS(60);       // Set our game to run at 60 frames-per-second
@@ -119,26 +123,25 @@ int main(void)
             // TODO: [2p] Player 2D movement from predefined Start-point to End-point
             // Implement maze 2D player movement logic (cursors || WASD)
             
-            Point prevPlayerpos = { player.x, player.y };
+            //Point prevPlayerpos = { player.x, player.y };
 
-            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) player.x += 4;
-            else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) player.x -= 4;
-            else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) player.y += 4;
-            else if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) player.y -= 4;
+            float velocity = 0.5f * MAZE_SCALE;
+            Vector2 direction = { 0};
+            if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) direction = (Vector2) { velocity, 0 };
+            else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) direction = (Vector2){ -velocity, 0 };
+            else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) direction = (Vector2){ 0, velocity };
+            else if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) direction = (Vector2){ 0, -velocity };
             
             // Use imMaze pixel information to check collisions
-            
-            if (ColorIsEqual(GetImageColor(imMaze,
-                (int)((player.x - position.x) / MAZE_SCALE),
-                (int)((player.y - position.y) / MAZE_SCALE)), WHITE))
+
+            if (!ColorIsEqual(GetImageColor(imMaze, (player.x + direction.x), (player.x + direction.y)), BLACK))
             {
-                player.x = prevPlayerpos.x;
-                player.y = prevPlayerpos.y;
+                player.x += direction.x;
+                player.y += direction.y;
             }
 
             if (ColorIsEqual(GetImageColor(imMaze, player.x, player.y), RED)) {
                 playerScore++;
-                
             }
 
             // Detect if current playerCell == endCell to finish game
@@ -187,21 +190,39 @@ int main(void)
                     texMaze = LoadTextureFromImage(imMaze);
                 }
             }
-            if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
-            {
-                Vector2 mousePos = GetMousePosition();
+            if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+                if (IsKeyPressed(KEY_LEFT_CONTROL)) {
+                    Vector2 mousePos = GetMousePosition();
 
-                if ((mousePos.x >= position.x) && (mousePos.y >= position.y))
+                    if ((mousePos.x >= position.x) && (mousePos.y >= position.y))
+                    {
+                        Point mapCoord = {
+                            (int)((mousePos.x - position.x) / MAZE_SCALE),
+                            (int)((mousePos.y - position.y) / MAZE_SCALE),
+                        };
+
+                        ImageDrawPixel(&imMaze, mapCoord.x, mapCoord.y, GREEN);
+
+                        UnloadTexture(texMaze);
+                        texMaze = LoadTextureFromImage(imMaze);
+                    }
+                }
+                else
                 {
-                    Point mapCoord = {
-                        (int)((mousePos.x - position.x) / MAZE_SCALE),
-                        (int)((mousePos.y - position.y) / MAZE_SCALE),
-                    };
+                    Vector2 mousePos = GetMousePosition();
 
-                    ImageDrawPixel(&imMaze, mapCoord.x, mapCoord.y, BLACK);
+                    if ((mousePos.x >= position.x) && (mousePos.y >= position.y))
+                    {
+                        Point mapCoord = {
+                            (int)((mousePos.x - position.x) / MAZE_SCALE),
+                            (int)((mousePos.y - position.y) / MAZE_SCALE),
+                        };
 
-                    UnloadTexture(texMaze);
-                    texMaze = LoadTextureFromImage(imMaze);
+                        ImageDrawPixel(&imMaze, mapCoord.x, mapCoord.y, WHITE);
+
+                        UnloadTexture(texMaze);
+                        texMaze = LoadTextureFromImage(imMaze);
+                    }
                 }
             }
 
@@ -238,6 +259,8 @@ int main(void)
         // TODO: [1p] Multiple maze biomes supported
         // Implement changing between the different textures to be used as biomes
         // NOTE: For the 3d model, the current selected texture must be applied to the model material  
+        if (IsKeyPressed(KEY_ONE)) currentBiome = 0;
+        if (IsKeyPressed(KEY_TWO)) currentBiome = 1;
 
         //----------------------------------------------------------------------------------
 
@@ -247,15 +270,12 @@ int main(void)
 
             ClearBackground(RAYWHITE);
 
-
-
             if (currentMode == 0) // Game mode
             {
                 // Draw maze using camera2d (for automatic positioning and scale)
                 BeginMode2D(camera);
 
-                    // TODO: Draw maze walls and floor using current texture biome 
-                    
+                // TODO: Draw maze walls and floor using current texture biome 
                 for (int y = 0; y < imMaze.height; y++)
                 {
                     for (int x = 0; x < imMaze.width; x++)
@@ -319,9 +339,14 @@ int main(void)
                     }
                 }
 
-                    // TODO: Draw player rectangle or sprite at player position
-                    DrawRectangleRec(player, RED);
+                // TODO: Draw player rectangle or sprite at player position
+                
+                //DrawTextureEx(texPlayer, (Vector2) { player.x, player.y }, 0.0f, 1.0f, WHITE);
 
+                DrawTexturePro(texPlayer, sourceRec,
+                    (Rectangle) { player.x, player.y, MAZE_SCALE, MAZE_SCALE },
+                    (Vector2) { 0 }, 0.0f, WHITE);
+                
                     // TODO: Draw maze items 2d (using sprite texture?)
                     //DrawTextureEx(texMaze, mazePosition, 0.0f, MAZE_SCALE, YELLOW);
                         
@@ -348,7 +373,7 @@ int main(void)
                 DrawRectangleLines(mazePosition.x, mazePosition.y, MAZE_WIDTH*MAZE_SCALE, MAZE_HEIGHT*MAZE_SCALE, RED);
 
                 // TODO: Draw player using a rectangle, consider maze screen coordinates!
-                DrawRectangle(player.x, player.y, player.width, player.height, RED);
+                DrawRectangle(player.x, player.y, player.width * MAZE_SCALE, player.height * MAZE_SCALE, RED);
 
                 // TODO: Draw editor UI required elements
                 //poner score actual
